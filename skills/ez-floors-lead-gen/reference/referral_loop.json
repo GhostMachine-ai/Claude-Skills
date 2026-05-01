@@ -1,0 +1,164 @@
+{
+  "name": "EZ Floors — Post-Sale Referral Loop",
+  "nodes": [
+    {
+      "id": "node-job-complete-trigger",
+      "name": "Job Complete Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "parameters": {
+        "documentId": "YOUR_MASTER_SHEET_ID",
+        "sheetName": "YOUR_SHEET_NAME",
+        "event": "rowUpdated",
+        "pollTime": { "mode": "everyMinute" }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (EZ Floors)"
+        }
+      },
+      "position": [240, 400],
+      "typeVersion": 4
+    },
+    {
+      "id": "node-check-job-complete",
+      "name": "Check: Status = Job Complete",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Job Complete",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "position": [480, 400],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-wait-1-day",
+      "name": "Wait 1 Day",
+      "type": "n8n-nodes-base.wait",
+      "parameters": { "amount": 1, "unit": "days" },
+      "position": [720, 300],
+      "typeVersion": 1.1
+    },
+    {
+      "id": "node-send-review",
+      "name": "Day 1: Google Review Request",
+      "type": "n8n-nodes-base.gmail",
+      "parameters": {
+        "operation": "send",
+        "toList": "={{ $json.Email }}",
+        "subject": "How did we do? — EZ Floors",
+        "message": "Hi {{ $json.Contact || 'there' }},\n\nThank you for choosing EZ Floors for your project. We'd love to hear how it went.\n\nIf you have 2 minutes, a Google review would mean a lot to us and helps other contractors find us:\n[YOUR_GOOGLE_REVIEW_LINK]\n\nAny issues at all — call me directly and I'll make it right.\n\nBasel\nEZ Floors | Katy, TX | (832) EZ-FLOORS",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail (Basel — EZ Floors)"
+        }
+      },
+      "position": [960, 300],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "node-wait-13-days",
+      "name": "Wait 13 Days (Day 14)",
+      "type": "n8n-nodes-base.wait",
+      "parameters": { "amount": 13, "unit": "days" },
+      "position": [1200, 300],
+      "typeVersion": 1.1
+    },
+    {
+      "id": "node-send-referral",
+      "name": "Day 14: Referral Ask",
+      "type": "n8n-nodes-base.gmail",
+      "parameters": {
+        "operation": "send",
+        "toList": "={{ $json.Email }}",
+        "subject": "Know anyone who needs flooring? — EZ Floors",
+        "message": "Hi {{ $json.Contact || 'there' }},\n\nHope the floor is looking great. Quick ask:\n\nDo you know any other GCs, property managers, or homeowners who need flooring work done? We give a thank-you credit for every qualified referral that books a job.\n\nJust send them to me directly or reply with their name and number — I'll take it from there and make sure your referral is recognized.\n\nBasel\nEZ Floors | Katy, TX | (832) EZ-FLOORS",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail (Basel — EZ Floors)"
+        }
+      },
+      "position": [1440, 300],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "node-wait-16-days",
+      "name": "Wait 16 Days (Day 30)",
+      "type": "n8n-nodes-base.wait",
+      "parameters": { "amount": 16, "unit": "days" },
+      "position": [1680, 300],
+      "typeVersion": 1.1
+    },
+    {
+      "id": "node-send-checkin",
+      "name": "Day 30: Next Project Check-In",
+      "type": "n8n-nodes-base.gmail",
+      "parameters": {
+        "operation": "send",
+        "toList": "={{ $json.Email }}",
+        "subject": "What's coming up next? — EZ Floors",
+        "message": "Hi {{ $json.Contact || 'there' }},\n\nIt's been about a month since your last project. Wanted to check in — anything coming up that needs flooring?\n\nI'm still your direct contact for same-day quotes. Just send me the square footage and product direction and I'll have a number back within the hour.\n\nBasel\nEZ Floors | Katy, TX | (832) EZ-FLOORS",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail (Basel — EZ Floors)"
+        }
+      },
+      "position": [1920, 300],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "node-update-referral-complete",
+      "name": "Update Status: Referral Loop Complete",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "update",
+        "documentId": "YOUR_MASTER_SHEET_ID",
+        "sheetName": "YOUR_SHEET_NAME",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": { "Status": "Referral Loop Complete" },
+          "matchingColumns": ["Phone"]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (EZ Floors)"
+        }
+      },
+      "position": [2160, 300],
+      "typeVersion": 4.5
+    }
+  ],
+  "connections": {
+    "Job Complete Trigger": { "main": [[{ "node": "Check: Status = Job Complete", "type": "main", "index": 0 }]] },
+    "Check: Status = Job Complete": { "main": [[{ "node": "Wait 1 Day", "type": "main", "index": 0 }], []] },
+    "Wait 1 Day": { "main": [[{ "node": "Day 1: Google Review Request", "type": "main", "index": 0 }]] },
+    "Day 1: Google Review Request": { "main": [[{ "node": "Wait 13 Days (Day 14)", "type": "main", "index": 0 }]] },
+    "Wait 13 Days (Day 14)": { "main": [[{ "node": "Day 14: Referral Ask", "type": "main", "index": 0 }]] },
+    "Day 14: Referral Ask": { "main": [[{ "node": "Wait 16 Days (Day 30)", "type": "main", "index": 0 }]] },
+    "Wait 16 Days (Day 30)": { "main": [[{ "node": "Day 30: Next Project Check-In", "type": "main", "index": 0 }]] },
+    "Day 30: Next Project Check-In": { "main": [[{ "node": "Update Status: Referral Loop Complete", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": ["ez-floors", "lead-gen", "referral"]
+}

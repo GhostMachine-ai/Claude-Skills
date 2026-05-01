@@ -1,0 +1,269 @@
+{
+  "name": "EZ Floors — B2B Outreach Sequences",
+  "nodes": [
+    {
+      "id": "node-sheets-trigger",
+      "name": "New Enriched Lead",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "parameters": {
+        "documentId": "YOUR_MASTER_SHEET_ID",
+        "sheetName": "YOUR_SHEET_NAME",
+        "event": "rowAdded",
+        "pollTime": { "mode": "everyMinute" }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (EZ Floors)"
+        }
+      },
+      "position": [240, 400],
+      "typeVersion": 4
+    },
+    {
+      "id": "node-check-status",
+      "name": "Check: Status = Enriched",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Enriched",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "position": [460, 400],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-build-d0",
+      "name": "Build Day 0 Email",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const lead = $input.first().json;\nconst contact = lead.Contact || 'there';\nconst company = lead.Company || 'your company';\nconst subject = 'Quick question about your flooring supplier';\nconst body = `Hi ${contact},\\n\\nI'm Basel at EZ Floors in Katy. I work with a lot of GCs and remodelers out here — quick question before I take up any more of your time: what does your current flooring supplier do that slows your jobs down or creates headaches?\\n\\nI turn quotes same-day and am your direct contact, not a call center. Worth a 15-minute call?\\n\\n${process.env.YOUR_CALENDLY_LINK || '[YOUR_CALENDLY_LINK]'}\\n\\nBasel\\nEZ Floors | Katy, TX | (832) EZ-FLOORS`;\nreturn [{ json: { ...lead, email_subject: subject, email_body: body } }];"
+      },
+      "position": [700, 300],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-check-email",
+      "name": "Has Email?",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.Email }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ]
+        }
+      },
+      "position": [940, 300],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-send-d0",
+      "name": "Send Day 0 Email",
+      "type": "n8n-nodes-base.gmail",
+      "parameters": {
+        "operation": "send",
+        "toList": "={{ $json.Email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail (Basel — EZ Floors)"
+        }
+      },
+      "position": [1180, 200],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "node-update-d0",
+      "name": "Update Status: Contacted D0",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "update",
+        "documentId": "YOUR_MASTER_SHEET_ID",
+        "sheetName": "YOUR_SHEET_NAME",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": { "Status": "Contacted D0" },
+          "matchingColumns": ["Phone"]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (EZ Floors)"
+        }
+      },
+      "position": [1420, 200],
+      "typeVersion": 4.5
+    },
+    {
+      "id": "node-wait-d3",
+      "name": "Wait 3 Days",
+      "type": "n8n-nodes-base.wait",
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "position": [1660, 200],
+      "typeVersion": 1.1
+    },
+    {
+      "id": "node-build-d3",
+      "name": "Build Day 3 Follow-Up",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const lead = $input.first().json;\nconst contact = lead.Contact || 'there';\nconst subject = 'Re: Quick question about your flooring supplier';\nconst body = `Hi ${contact},\\n\\nFollowing up on my note from a few days ago. Companies I work with tell me the biggest flooring headaches are quote turnaround (3–5 days with most suppliers) and chasing material availability.\\n\\nI solve both — same-day quotes, I personally track your material availability, and you get my direct number. First job is low-risk: give me the scope and I'll show you what that looks like in practice.\\n\\nWorth 15 minutes?\\n\\n${process.env.YOUR_CALENDLY_LINK || '[YOUR_CALENDLY_LINK]'}\\n\\nBasel`;\nreturn [{ json: { ...lead, email_subject: subject, email_body: body } }];"
+      },
+      "position": [1900, 200],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-send-d3",
+      "name": "Send Day 3 Email",
+      "type": "n8n-nodes-base.gmail",
+      "parameters": {
+        "operation": "send",
+        "toList": "={{ $json.Email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail (Basel — EZ Floors)"
+        }
+      },
+      "position": [2140, 200],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "node-wait-d7",
+      "name": "Wait 4 More Days (Day 7)",
+      "type": "n8n-nodes-base.wait",
+      "parameters": {
+        "amount": 4,
+        "unit": "days"
+      },
+      "position": [2380, 200],
+      "typeVersion": 1.1
+    },
+    {
+      "id": "node-sms-d7",
+      "name": "Send Day 7 SMS",
+      "type": "n8n-nodes-base.twilio",
+      "parameters": {
+        "operation": "send",
+        "from": "YOUR_TWILIO_FROM_NUMBER",
+        "to": "={{ $json.Phone }}",
+        "message": "Basel @ EZ Floors — any flooring coming up? Happy to quote same-day and be your direct contact. Just reply here or grab 15 min: {{ $env.YOUR_CALENDLY_LINK }}"
+      },
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CREDENTIAL_ID",
+          "name": "Twilio (EZ Floors)"
+        }
+      },
+      "position": [2620, 200],
+      "typeVersion": 1
+    },
+    {
+      "id": "node-wait-d14",
+      "name": "Wait 7 More Days (Day 14)",
+      "type": "n8n-nodes-base.wait",
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "position": [2860, 200],
+      "typeVersion": 1.1
+    },
+    {
+      "id": "node-build-d14",
+      "name": "Build Day 14 Close Loop",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const lead = $input.first().json;\nconst contact = lead.Contact || 'there';\nconst subject = 'Closing the loop — EZ Floors';\nconst body = `Hi ${contact},\\n\\nClosing the loop on my messages from the past two weeks. If flooring isn't a current pain point, no worries — I'll follow up in 60 days.\\n\\nIf anything changes before then — project comes in, supplier lets you down, need a fast quote — I'm at (832) EZ-FLOORS or reply here.\\n\\nBasel\\nEZ Floors | Katy, TX`;\nreturn [{ json: { ...lead, email_subject: subject, email_body: body } }];"
+      },
+      "position": [3100, 200],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-send-d14",
+      "name": "Send Day 14 Email",
+      "type": "n8n-nodes-base.gmail",
+      "parameters": {
+        "operation": "send",
+        "toList": "={{ $json.Email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail (Basel — EZ Floors)"
+        }
+      },
+      "position": [3340, 200],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "node-update-complete",
+      "name": "Update Status: Sequence Complete",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "update",
+        "documentId": "YOUR_MASTER_SHEET_ID",
+        "sheetName": "YOUR_SHEET_NAME",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": { "Status": "Sequence Complete" },
+          "matchingColumns": ["Phone"]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (EZ Floors)"
+        }
+      },
+      "position": [3580, 200],
+      "typeVersion": 4.5
+    }
+  ],
+  "connections": {
+    "New Enriched Lead": { "main": [[{ "node": "Check: Status = Enriched", "type": "main", "index": 0 }]] },
+    "Check: Status = Enriched": { "main": [[{ "node": "Build Day 0 Email", "type": "main", "index": 0 }], []] },
+    "Build Day 0 Email": { "main": [[{ "node": "Has Email?", "type": "main", "index": 0 }]] },
+    "Has Email?": { "main": [[{ "node": "Send Day 0 Email", "type": "main", "index": 0 }], []] },
+    "Send Day 0 Email": { "main": [[{ "node": "Update Status: Contacted D0", "type": "main", "index": 0 }]] },
+    "Update Status: Contacted D0": { "main": [[{ "node": "Wait 3 Days", "type": "main", "index": 0 }]] },
+    "Wait 3 Days": { "main": [[{ "node": "Build Day 3 Follow-Up", "type": "main", "index": 0 }]] },
+    "Build Day 3 Follow-Up": { "main": [[{ "node": "Send Day 3 Email", "type": "main", "index": 0 }]] },
+    "Send Day 3 Email": { "main": [[{ "node": "Wait 4 More Days (Day 7)", "type": "main", "index": 0 }]] },
+    "Wait 4 More Days (Day 7)": { "main": [[{ "node": "Send Day 7 SMS", "type": "main", "index": 0 }]] },
+    "Send Day 7 SMS": { "main": [[{ "node": "Wait 7 More Days (Day 14)", "type": "main", "index": 0 }]] },
+    "Wait 7 More Days (Day 14)": { "main": [[{ "node": "Build Day 14 Close Loop", "type": "main", "index": 0 }]] },
+    "Build Day 14 Close Loop": { "main": [[{ "node": "Send Day 14 Email", "type": "main", "index": 0 }]] },
+    "Send Day 14 Email": { "main": [[{ "node": "Update Status: Sequence Complete", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": ["ez-floors", "lead-gen", "outreach"]
+}

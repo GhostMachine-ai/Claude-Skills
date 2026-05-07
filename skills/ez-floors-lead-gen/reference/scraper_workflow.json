@@ -1,0 +1,242 @@
+{
+  "name": "EZ Floors — B2B Lead Scraper",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Nightly Trigger (2 AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "position": [240, 400],
+      "typeVersion": 1.2
+    },
+    {
+      "id": "node-search-gc",
+      "name": "Search: General Contractors Katy TX",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "method": "GET",
+        "qs": {
+          "parameters": [
+            { "name": "query", "value": "general contractor Katy TX" },
+            { "name": "key", "value": "YOUR_GOOGLE_MAPS_API_KEY" }
+          ]
+        }
+      },
+      "position": [480, 200],
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-search-pm",
+      "name": "Search: Property Management Houston TX",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "method": "GET",
+        "qs": {
+          "parameters": [
+            { "name": "query", "value": "property management company Houston TX" },
+            { "name": "key", "value": "YOUR_GOOGLE_MAPS_API_KEY" }
+          ]
+        }
+      },
+      "position": [480, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-search-remodel",
+      "name": "Search: Remodeling Contractors Houston TX",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "method": "GET",
+        "qs": {
+          "parameters": [
+            { "name": "query", "value": "remodeling contractor Houston TX" },
+            { "name": "key", "value": "YOUR_GOOGLE_MAPS_API_KEY" }
+          ]
+        }
+      },
+      "position": [480, 400],
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-search-rei",
+      "name": "Search: Real Estate Investors Houston TX",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "method": "GET",
+        "qs": {
+          "parameters": [
+            { "name": "query", "value": "real estate investor Houston TX" },
+            { "name": "key", "value": "YOUR_GOOGLE_MAPS_API_KEY" }
+          ]
+        }
+      },
+      "position": [480, 500],
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-search-restore",
+      "name": "Search: Restoration Companies Houston TX",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "method": "GET",
+        "qs": {
+          "parameters": [
+            { "name": "query", "value": "restoration company Houston TX" },
+            { "name": "key", "value": "YOUR_GOOGLE_MAPS_API_KEY" }
+          ]
+        }
+      },
+      "position": [480, 600],
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-search-commercial",
+      "name": "Search: Commercial Contractors Houston TX",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        "method": "GET",
+        "qs": {
+          "parameters": [
+            { "name": "query", "value": "commercial contractor Houston TX" },
+            { "name": "key", "value": "YOUR_GOOGLE_MAPS_API_KEY" }
+          ]
+        }
+      },
+      "position": [480, 700],
+      "typeVersion": 4.2
+    },
+    {
+      "id": "node-merge",
+      "name": "Merge All Search Results",
+      "type": "n8n-nodes-base.merge",
+      "parameters": {
+        "mode": "mergeByPosition"
+      },
+      "position": [720, 400],
+      "typeVersion": 3
+    },
+    {
+      "id": "node-normalize",
+      "name": "Normalize & Extract Fields",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const results = [];\nfor (const item of $input.all()) {\n  const places = item.json.results || [];\n  const source = item.json._searchQuery || 'unknown';\n  for (const place of places) {\n    results.push({\n      json: {\n        company: place.name || '',\n        contact: '',\n        phone: place.formatted_phone_number || '',\n        email: '',\n        address: place.formatted_address || '',\n        city: (place.formatted_address || '').includes('Houston') ? 'Houston' : 'Katy',\n        type: source,\n        source: 'Google Maps',\n        date_added: new Date().toISOString().split('T')[0],\n        status: 'Raw',\n        score: '',\n        notes: `Rating: ${place.rating || 'N/A'} | Reviews: ${place.user_ratings_total || 0}`,\n        _rating: place.rating || 0,\n        _review_count: place.user_ratings_total || 0,\n        _place_id: place.place_id || ''\n      }\n    });\n  }\n}\nreturn results;"
+      },
+      "position": [960, 400],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-filter",
+      "name": "Filter: Active Businesses Only",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._review_count }}",
+              "rightValue": 5,
+              "operator": { "type": "number", "operation": "gte" }
+            }
+          ],
+          "combinator": "or"
+        }
+      },
+      "position": [1200, 400],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-dedup",
+      "name": "Deduplicate by Phone",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": "const seen = new Set();\nconst unique = [];\nfor (const item of $input.all()) {\n  const key = item.json.phone || item.json._place_id;\n  if (key && !seen.has(key)) {\n    seen.add(key);\n    unique.push(item);\n  }\n}\nreturn unique;"
+      },
+      "position": [1440, 300],
+      "typeVersion": 2
+    },
+    {
+      "id": "node-sheets-append",
+      "name": "Append to Master Lead Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "append",
+        "documentId": "YOUR_MASTER_SHEET_ID",
+        "sheetName": "YOUR_SHEET_NAME",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Company": "={{ $json.company }}",
+            "Contact": "={{ $json.contact }}",
+            "Phone": "={{ $json.phone }}",
+            "Email": "={{ $json.email }}",
+            "Address": "={{ $json.address }}",
+            "City": "={{ $json.city }}",
+            "Type": "={{ $json.type }}",
+            "Source": "={{ $json.source }}",
+            "Date Added": "={{ $json.date_added }}",
+            "Status": "={{ $json.status }}",
+            "Score": "={{ $json.score }}",
+            "Notes": "={{ $json.notes }}"
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (EZ Floors)"
+        }
+      },
+      "position": [1680, 300],
+      "typeVersion": 4.5
+    }
+  ],
+  "connections": {
+    "Nightly Trigger (2 AM)": {
+      "main": [[
+        { "node": "Search: General Contractors Katy TX", "type": "main", "index": 0 },
+        { "node": "Search: Property Management Houston TX", "type": "main", "index": 0 },
+        { "node": "Search: Remodeling Contractors Houston TX", "type": "main", "index": 0 },
+        { "node": "Search: Real Estate Investors Houston TX", "type": "main", "index": 0 },
+        { "node": "Search: Restoration Companies Houston TX", "type": "main", "index": 0 },
+        { "node": "Search: Commercial Contractors Houston TX", "type": "main", "index": 0 }
+      ]]
+    },
+    "Search: General Contractors Katy TX": { "main": [[{ "node": "Merge All Search Results", "type": "main", "index": 0 }]] },
+    "Search: Property Management Houston TX": { "main": [[{ "node": "Merge All Search Results", "type": "main", "index": 1 }]] },
+    "Search: Remodeling Contractors Houston TX": { "main": [[{ "node": "Merge All Search Results", "type": "main", "index": 2 }]] },
+    "Search: Real Estate Investors Houston TX": { "main": [[{ "node": "Merge All Search Results", "type": "main", "index": 3 }]] },
+    "Search: Restoration Companies Houston TX": { "main": [[{ "node": "Merge All Search Results", "type": "main", "index": 4 }]] },
+    "Search: Commercial Contractors Houston TX": { "main": [[{ "node": "Merge All Search Results", "type": "main", "index": 5 }]] },
+    "Merge All Search Results": { "main": [[{ "node": "Normalize & Extract Fields", "type": "main", "index": 0 }]] },
+    "Normalize & Extract Fields": { "main": [[{ "node": "Filter: Active Businesses Only", "type": "main", "index": 0 }]] },
+    "Filter: Active Businesses Only": { "main": [[{ "node": "Deduplicate by Phone", "type": "main", "index": 0 }], []] },
+    "Deduplicate by Phone": { "main": [[{ "node": "Append to Master Lead Sheet", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": ["ez-floors", "lead-gen", "scraper"]
+}
